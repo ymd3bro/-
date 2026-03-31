@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高機能 関数電卓アプリ</title>
+<style>
+  /* 全体のレイアウト */
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #343a40; /* 背景を少しダークに */
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    margin: 0;
+  }
+  
+  /* 計算機本体のデザイン */
+  .calculator {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    width: 320px; /* ボタンが多いので少し幅広に設定 */
+  }
+
+  /* ディスプレイ（計算結果の表示部分） */
+  #display {
+    width: 100%;
+    height: 70px;
+    font-size: 32px;
+    text-align: right;
+    margin-bottom: 15px;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background-color: #e9ecef;
+    color: #212529;
+  }
+
+  /* ボタンの配置（4列のグリッドレイアウト） */
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  /* ボタンの基本デザイン */
+  button {
+    height: 45px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    color: #333;
+    transition: background-color 0.1s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  button:active {
+    background-color: #dee2e6;
+    box-shadow: none;
+    transform: translateY(2px);
+  }
+
+  /* 各種ボタンのカラーリング */
+  .number { background-color: #ffffff; font-size: 20px; }
+  .operator { background-color: #ff9f0a; color: white; font-size: 20px; }
+  .operator:active { background-color: #e08b00; }
+  .memory { background-color: #6c757d; color: white; }
+  .memory:active { background-color: #5a6268; }
+  .func { background-color: #e9ecef; color: #495057; }
+  .action { background-color: #ff453a; color: white; }
+  .action:active { background-color: #d1362d; }
+  .equals { background-color: #32d74b; color: white; font-size: 20px; }
+  .equals:active { background-color: #28a745; }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+  <input type="text" id="display" disabled>
+  
+  <div class="buttons">
+    <button onclick="memoryClear()" class="memory">MC</button>
+    <button onclick="memoryRecall()" class="memory">MR</button>
+    <button onclick="memoryMinus()" class="memory">M-</button>
+    <button onclick="memoryPlus()" class="memory">M+</button>
+
+    <button onclick="calculateTrig('sin')" class="func">sin</button>
+    <button onclick="calculateTrig('cos')" class="func">cos</button>
+    <button onclick="calculateTrig('tan')" class="func">tan</button>
+    <button onclick="deleteLastChar()" class="action">DEL</button>
+
+    <button onclick="calculateLog('log')" class="func">log</button>
+    <button onclick="calculateLog('ln')" class="func">ln</button>
+    <button onclick="appendToDisplay(Math.PI)" class="func">π</button>
+    <button onclick="appendToDisplay(Math.E)" class="func">e</button>
+
+    <button onclick="calculateSquare()" class="func">x²</button>
+    <button onclick="calculateSquareRoot()" class="func">√</button>
+    <button onclick="calculateFactorial()" class="func">n!</button>
+    <button onclick="calculatePercent()" class="func">%</button>
+
+    <button onclick="appendToDisplay('(')" class="func">(</button>
+    <button onclick="appendToDisplay(')')" class="func">)</button>
+    <button onclick="toggleSign()" class="func">±</button>
+    <button onclick="appendToDisplay('/')" class="operator">÷</button>
+
+    <button onclick="appendToDisplay('7')" class="number">7</button>
+    <button onclick="appendToDisplay('8')" class="number">8</button>
+    <button onclick="appendToDisplay('9')" class="number">9</button>
+    <button onclick="appendToDisplay('*')" class="operator">×</button>
+
+    <button onclick="appendToDisplay('4')" class="number">4</button>
+    <button onclick="appendToDisplay('5')" class="number">5</button>
+    <button onclick="appendToDisplay('6')" class="number">6</button>
+    <button onclick="appendToDisplay('-')" class="operator">−</button>
+
+    <button onclick="appendToDisplay('1')" class="number">1</button>
+    <button onclick="appendToDisplay('2')" class="number">2</button>
+    <button onclick="appendToDisplay('3')" class="number">3</button>
+    <button onclick="appendToDisplay('+')" class="operator">+</button>
+
+    <button onclick="clearAll()" class="action">AC</button>
+    <button onclick="appendToDisplay('0')" class="number">0</button>
+    <button onclick="appendToDisplay('.')" class="number">.</button>
+    <button onclick="calculate()" class="equals">=</button>
+  </div>
+</div>
+
+<script>
+  const display = document.getElementById('display');
+  let memory = 0; // メモリー機能用の変数
+
+  // --- 基本入力・削除 ---
+  function appendToDisplay(value) {
+    display.value += value;
+  }
+
+  function clearAll() {
+    display.value = '';
+  }
+
+  function deleteLastChar() {
+    display.value = display.value.slice(0, -1);
+  }
+
+  // --- メモリー機能 ---
+  function memoryPlus() {
+    try {
+      memory += eval(display.value) || 0;
+      clearAll();
+    } catch(e) { display.value = 'エラー'; }
+  }
+
+  function memoryMinus() {
+    try {
+      memory -= eval(display.value) || 0;
+      clearAll();
+    } catch(e) { display.value = 'エラー'; }
+  }
+
+  function memoryRecall() {
+    display.value += memory;
+  }
+
+  function memoryClear() {
+    memory = 0;
+  }
+
+  // --- 関数・特殊計算 ---
+  function getCurrentValue() {
+    // 画面が空の場合は0を返す、それ以外は数式として計算して返す
+    if (display.value === '') return 0;
+    return eval(display.value);
+  }
+
+  function toggleSign() {
+    try { display.value = getCurrentValue() * -1; } 
+    catch(e) { display.value = 'エラー'; }
+  }
+
+  function calculatePercent() {
+    try { display.value = getCurrentValue() / 100; } 
+    catch(e) { display.value = 'エラー'; }
+  }
+
+  function calculateSquare() {
+    try { display.value = getCurrentValue() ** 2; } 
+    catch(e) { display.value = 'エラー'; }
+  }
+
+  function calculateSquareRoot() {
+    try {
+      let val = getCurrentValue();
+      if (val < 0) display.value = 'エラー';
+      else display.value = Math.sqrt(val);
+    } catch(e) { display.value = 'エラー'; }
+  }
+
+  function calculateFactorial() {
+    try {
+      let num = parseInt(getCurrentValue());
+      if (num < 0) {
+        display.value = 'エラー';
+        return;
+      }
+      if (num === 0 || num === 1) {
+        display.value = 1;
+        return;
+      }
+      let result = 1;
+      for (let i = num; i > 1; i--) result *= i;
+      display.value = result;
+    } catch(e) { display.value = 'エラー'; }
+  }
+
+  function calculateTrig(type) {
+    try {
+      let degrees = getCurrentValue();
+      let radians = degrees * (Math.PI / 180);
+      let result = 0;
+      if (type === 'sin') result = Math.sin(radians);
+      if (type === 'cos') result = Math.cos(radians);
+      if (type === 'tan') result = Math.tan(radians);
+      // 微小な誤差を丸める
+      display.value = Math.round(result * 100000000) / 100000000;
+    } catch(e) { display.value = 'エラー'; }
+  }
+
+  function calculateLog(type) {
+    try {
+      let val = getCurrentValue();
+      if (val <= 0) {
+        display.value = 'エラー';
+        return;
+      }
+      if (type === 'log') display.value = Math.log10(val);
+      if (type === 'ln') display.value = Math.log(val);
+    } catch(e) { display.value = 'エラー'; }
+  }
+
+  // --- 通常のイコール計算 ---
+  function calculate() {
+    try {
+      if (display.value !== '') {
+        display.value = eval(display.value);
+      }
+    } catch (error) {
+      display.value = 'エラー';
+    }
+  }
+</script>
+
+</body>
+</html>
