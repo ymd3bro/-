@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>放物運動シミュレーター（リセット機能つき）</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #222; 
+            font-family: sans-serif; 
+            color: #fff;
+        }
+        canvas { 
+            display: block; 
+        }
+        .controls { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            background: rgba(68, 68, 68, 0.8); 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        input { width: 60px; margin-right: 15px; padding: 5px; font-size: 16px; text-align: center; }
+        button { padding: 8px 15px; font-size: 16px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; margin-right: 5px; }
+        .btn-launch { background: #00bcd4; color: #000; }
+        .btn-launch:hover { background: #0097a7; }
+        /* 新しく追加したリセットボタンのデザイン */
+        .btn-reset { background: #ff5252; color: #fff; }
+        .btn-reset:hover { background: #d50000; }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <label>初速度 (m/s): <input type="number" id="velocity" value="30" min="5" max="60"></label>
+    <label>角度 (度): <input type="number" id="angle" value="45" min="10" max="85"></label>
+    <button class="btn-launch" onclick="launch()">発射</button>
+    <!-- リセットボタンを追加 -->
+    <button class="btn-reset" onclick="resetSim()">リセット</button>
+</div>
+
+<canvas id="simCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let trajectories = []; 
+    let currentBall = null;
+    let animationId;
+
+    const g = 9.8;        
+    const scale = 15;     
+    const groundY = 50;   
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        drawGround();
+        trajectories.forEach(path => drawPath(path, 'rgba(255, 255, 255, 0.2)'));
+    }
+    window.addEventListener('resize', resize);
+
+    function drawGround() {
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height - groundY);
+        ctx.lineTo(canvas.width, canvas.height - groundY);
+        ctx.strokeStyle = '#777';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    function launch() {
+        if (animationId) cancelAnimationFrame(animationId);
+
+        const v0 = parseFloat(document.getElementById('velocity').value);
+        const angleDeg = parseFloat(document.getElementById('angle').value);
+        const angleRad = angleDeg * Math.PI / 180;
+
+        if (currentBall) {
+            trajectories.push([...currentBall.path]);
+            if (trajectories.length > 5) trajectories.shift();
+        }
+
+        currentBall = {
+            t: 0, 
+            vx: v0 * Math.cos(angleRad),
+            vy: v0 * Math.sin(angleRad), 
+            path: [],
+            color: `hsl(${Math.random() * 360}, 80%, 60%)` 
+        };
+
+        animate();
+    }
+
+    // --- 新しく追加したリセット機能 ---
+    function resetSim() {
+        // 1. 動いているアニメーションを強制ストップ
+        if (animationId) cancelAnimationFrame(animationId);
+        
+        // 2. 過去の軌跡データ（配列）を空っぽにする
+        trajectories = []; 
+        
+        // 3. 現在飛んでいるボールのデータを消す
+        currentBall = null; 
+        
+        // 4. キャンバス（画面）を完全に消しゴムで消す
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        
+        // 5. 地面だけ描き直す
+        drawGround(); 
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        drawGround();
+        trajectories.forEach(path => drawPath(path, 'rgba(255, 255, 255, 0.2)'));
+
+        if (currentBall) {
+            currentBall.t += 0.05; 
+            const t = currentBall.t;
+
+            const x = currentBall.vx * t;
+            const y = currentBall.vy * t - 0.5 * g * t * t;
+
+            const screenX = 30 + x * scale;
+            const screenY = canvas.height - groundY - y * scale;
+
+            currentBall.path.push({x: screenX, y: screenY});
+            drawPath(currentBall.path, currentBall.color);
+
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, 8, 0, Math.PI * 2);
+            ctx.fillStyle = currentBall.color;
+            ctx.fill();
+
+            if (y >= 0) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+    }
+
+    function drawPath(path, color) {
+        if (path.length === 0) return;
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        for (let i = 1; i < path.length; i++) {
+            ctx.lineTo(path[i].x, path[i].y);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    }
+
+    resize();
+</script>
+</body>
+</html>
